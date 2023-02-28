@@ -3,3 +3,6 @@ Support
     - Images
     - ULists
     - URLs
+
+Methods
+    - Prettify

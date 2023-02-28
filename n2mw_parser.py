@@ -42,7 +42,7 @@ class N2MW_Parser():
             '>': self.parseQuote,
             '```': self.parseCode,
             '!\[': self.parseImg,
-            # '[': self.parseUrl,
+            '\[': self.parseUrl,
         }
         if self.debuglevel: print('[*] DEBUG: identifyTag("', input,'")')
         
@@ -66,7 +66,7 @@ class N2MW_Parser():
             Add the tag and the children to the stack
         """
 
-        self.wrappingStack.append([tag, f"<{tag} {params}>"])
+        self.wrappingStack.append([tag, [f"<Tags.{tag} {params}>", ""]])
 
     
     def concatTagChildren(self, children):
@@ -75,7 +75,7 @@ class N2MW_Parser():
         """
 
         if self.wrappingStack:
-            self.wrappingStack[-1][1] += children
+            self.wrappingStack[-1][1][1] += children
     
 
     def closeTag(self):
@@ -83,9 +83,9 @@ class N2MW_Parser():
             Pops the top of the wrapping stack and return the full tag
         """
 
-        tag, children = self.wrappingStack.pop()    
+        tag, childrenObject = self.wrappingStack.pop()    
 
-        return f"{children}</{tag}>"
+        return [*childrenObject, f"</Tags.{tag}>"]
 
 
     """
@@ -98,43 +98,43 @@ class N2MW_Parser():
     def parseTitle4(self, data):
         if self.debuglevel: print('[*] DEBUG: parseTitle3("', data,'")')
 
-        return f"<Title3>{data.strip(' #')}</Title3>"
+        return ["<Tags.Title3>", data.strip(' #'), "</Tags.Title3>"]
     
 
     def parseTitle3(self, data):
         if self.debuglevel: print('[*] DEBUG: parseTitle3("', data,'")')
 
-        return f"<Title3>{data.strip(' #')}</Title3>"
+        return ["<Tags.Title3>", data.strip(' #'), "</Tags.Title3>"]
     
 
     def parseTitle2(self, data):
         if self.debuglevel: print('[*] DEBUG: parseTitle2("', data,'")')
 
-        return f"<Title2>{data.strip(' #')}</Title2>"
+        return ["<Tags.Title2>", data.strip(' #'), "</Tags.Title2>"]
     
 
     def parseTitle(self, data):
         if self.debuglevel: print('[*] DEBUG: parseTitle("', data,'")')
 
-        return f"<Title>{data.strip(' #')}</Title>"
+        return ["<Tags.Title>", data.strip(' #'), "</Tags.Title>"]
     
 
     def parseHr(self, _):
         if self.debuglevel: print('[*] DEBUG: parseHr()')
 
-        return f"<Hr />"
+        return ["<Tags.Hr />",]
     
 
     def parseParagraph(self, data):
         if self.debuglevel: print('[*] DEBUG: parseParagraph()')
 
-        return f"<Paragraph>{data.strip()}</Paragraph>"
+        return ["<Tags.Paragraph>", data, "</Tags.Paragraph>"]
     
 
     def parseQuote(self, data):
         if self.debuglevel: print('[*] DEBUG: parseQuote()')
 
-        return f"<Quote>{data.strip(' >')}</Quote>"
+        return ["<Tags.Quote>", data.strip(' >'), "</Tags.Quote>"]
     
 
     def parseCode(self, data):
@@ -152,11 +152,22 @@ class N2MW_Parser():
 
 
     def parseImg(self, data):
-        if self.debuglevel: print('[*] DEBUG: parseImage()')
+        if self.debuglevel: print('[*] DEBUG: parseImg()')
 
         charsetSymbols = "!\.\-\_@#%\?=\/:"
         charsetAlt = f"\w\s{charsetSymbols}"
         charsetUrl = f"\w\s{charsetSymbols}"
         alt, src = re.search(f'!\[([{charsetAlt}]+)\]\(([{charsetUrl}]+)\)', data).groups()
 
-        return '<Image alt={"' + alt + '"} img={"' + src + '"} />'
+        return ['<Tags.Image alt={"' + alt + '"} img={"' + src + '"} />',]
+    
+
+    def parseUrl(self, data):
+        if self.debuglevel: print('[*] DEBUG: parseUrl()')
+
+        charsetSymbols = "!\.\-\_@#%\?=\/:"
+        charsetAlt = f"\w\s{charsetSymbols}"
+        charsetUrl = f"\w\s{charsetSymbols}"
+        title, src = re.search(f'\[([{charsetAlt}]+)\]\(([{charsetUrl}]+)\)', data).groups()
+
+        return ['<Tags.Url title={"' + title + '"} src={"' + src + '"} />',]

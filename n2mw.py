@@ -65,18 +65,25 @@ class N2MW_CLI(N2MW_Parser):
         buffer = ""
 
         # Imports
-        buffer += 'import {Title, Title2, Title3, Title4, Link, Paragraph, UList, Img, Callout, Code, SubPage, Quote, Url, Toggle, Block, Hr, Section} from "@/components/MarkupWidgets/Tags.js"\n'
+        buffer += 'import Tags from "@/components/MarkupWidgets/Tags.js"\n'
         buffer += "\n\n\n"
 
         # Code
         buffer += "export default function Page(){ return (<>\n\n\t"
-        buffer += '\n\n\t'.join(self.outputData)
+        for tagObject in self.outputData:  # Iterate tags list [[tag_fragment], [tag_fragment], ...]
+            for tagFragments in tagObject:  # Iterate tag fragment ["<Tags.Title>", "My example title", "</Tags.Title>"]
+                buffer += "".join(tagFragments)  # Join fragments in a sigle line for each tag
+            buffer += "\n\n\t"  # Join each tag with a two line-break spearation
+
+        # EOF
         buffer += "\n\n</>)}"
 
+        # Preview
         print(f"==============[ Output file to: {path} ]==============")
         print(buffer)
         print("=====================[ End Of file ]===================")
 
+        # Dump
         with open(path, "w") as fd:
             fd.write(buffer)
 
