@@ -57,10 +57,29 @@ class N2MW_CLI(N2MW_Parser):
                 tag = parserFunc(line)  # Check that is a valid tag value
                 if tag: self.outputData.append(tag)  # Parse and append to output tags array
                     
-                
-            
+    def exportAsPost(self, path):
+        """
+            Export the data as a component for the blog to a file
+        """
 
-                
+        buffer = ""
+
+        # Imports
+        buffer += 'import {Title, Title2, Title3, Title4, Link, Paragraph, UList, Img, Callout, Code, SubPage, Quote, Url, Toggle, Block, Hr, Section} from "@/components/MarkupWidgets/Tags.js"\n'
+        buffer += "\n\n\n"
+
+        # Code
+        buffer += "export default function Page(){ return (<>\n\n\t"
+        buffer += '\n\n\t'.join(self.outputData)
+        buffer += "\n\n</>)}"
+
+        print(f"==============[ Output file to: {path} ]==============")
+        print(buffer)
+        print("=====================[ End Of file ]===================")
+
+        with open(path, "w") as fd:
+            fd.write(buffer)
+
 
             
               
@@ -73,3 +92,4 @@ if __name__ == "__main__":
     converter.debug()
     converter.convert()
     converter.debug()
+    converter.exportAsPost("./out.jsx")
