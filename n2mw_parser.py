@@ -41,6 +41,8 @@ class N2MW_Parser():
             '===': self.parseHr,
             '>': self.parseQuote,
             '```': self.parseCode,
+            '!\[': self.parseImg,
+            # '[': self.parseUrl,
         }
         if self.debuglevel: print('[*] DEBUG: identifyTag("', input,'")')
         
@@ -53,7 +55,7 @@ class N2MW_Parser():
 
         input = input.strip()
         for key,val in tags.items(): 
-            if self.debuglevel: print('  [i] DEBUG: identifyTag("', input,'") -->', re.match(key, input))
+            if self.debuglevel: print('  [i] DEBUG: identifyTag("', input,'") -->', re.search(key, input))
             if (re.search('^' + key, input) != None): return val
 
         return self.parseParagraph
@@ -149,3 +151,12 @@ class N2MW_Parser():
             return None
 
 
+    def parseImg(self, data):
+        if self.debuglevel: print('[*] DEBUG: parseImage()')
+
+        charsetSymbols = "!\.\-\_@#%\?=\/:"
+        charsetAlt = f"\w\s{charsetSymbols}"
+        charsetUrl = f"\w\s{charsetSymbols}"
+        alt, src = re.search(f'!\[([{charsetAlt}]+)\]\(([{charsetUrl}]+)\)', data).groups()
+
+        return '<Image alt={"' + alt + '"} img={"' + src + '"} />'
