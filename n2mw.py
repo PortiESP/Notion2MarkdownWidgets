@@ -96,7 +96,6 @@ class N2MW_CLI(N2MW_Parser):
 if __name__ == "__main__":
     converter = N2MW_CLI()
 
-    converter.debug()
     converter.convert()
     converter.debug()
     converter.exportAsPost("./out.jsx")

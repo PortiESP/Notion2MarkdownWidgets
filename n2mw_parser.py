@@ -19,9 +19,9 @@ class N2MW_Parser():
 
 
     def __init__(self):
-        self.debuglevel = True
-        self.forceWrapping = ''
-        self.wrappingStack = []
+        self.debuglevel = True   # Print debug messages
+        self.forceWrapping = ''  # When active, all the input lines will be parsed as raw strings until its value is set to `''`
+        self.wrappingStack = []  # Keeps track of the opened tags
 
     
     def identifyTag(self, input):
@@ -33,22 +33,24 @@ class N2MW_Parser():
 
         """
         tags = {  # All managed tags that can be parsed
-            "####": self.parseTitle4,
-            "###": self.parseTitle3,
-            "##": self.parseTitle2,
-            "#": self.parseTitle,
-            '---': self.parseHr,
-            '===': self.parseHr,
-            '>': self.parseQuote,
+            "####\s": self.parseTitle4,
+            "###\s": self.parseTitle3,
+            "##\s": self.parseTitle2,
+            "#\s": self.parseTitle,
+            '(---|===)+': self.parseHr,
+            '>\s': self.parseQuote,
             '```': self.parseCode,
             '!\[': self.parseImg,
             '\[': self.parseUrl,
+            '</?aside>': self.parseCallout,
+            '\*\*\w+': self.parseBold,
+            '\*\w+': self.parseItalic,
         }
         if self.debuglevel: print('[*] DEBUG: identifyTag("', input,'")')
         
         if len(input.strip()) == 0: return None
 
-        if not re.match('^' + self.forceWrapping, input):  # Run this code while force wrapping pattern doesnt get matched
+        if not re.match(self.forceWrapping, input):  # Run this code while force wrapping pattern doesnt get matched
             self.concatTagChildren(input)
             return None
 
@@ -75,7 +77,7 @@ class N2MW_Parser():
         """
 
         if self.wrappingStack:
-            self.wrappingStack[-1][1][1] += children
+            self.wrappingStack[-1][1][1] += children.strip()
     
 
     def closeTag(self):
@@ -86,6 +88,26 @@ class N2MW_Parser():
         tag, childrenObject = self.wrappingStack.pop()    
 
         return [*childrenObject, f"</Tags.{tag}>"]
+    
+
+    def checkForceWrap(self, tag, pattern):
+        """
+            When called, checks if there is a forceWrapping active
+
+            - If its active: Resets the force variable and close the last tag from the wrappingStack
+            - If its not active: Set the forceWrapping value as the tag pattern and opens a tag
+
+        """
+
+        if self.forceWrapping:
+            if self.debuglevel: print('  [i] DEBUG: Stop wrap')
+            self.forceWrapping = ''
+            return self.closeTag()
+        else: 
+            if self.debuglevel: print('  [i] DEBUG: Start wrap')
+            self.forceWrapping = pattern
+            self.openTag(tag)
+            return None
 
 
     """
@@ -140,15 +162,7 @@ class N2MW_Parser():
     def parseCode(self, data):
         if self.debuglevel: print('[*] DEBUG: parseCode()')
 
-        if self.forceWrapping:
-            if self.debuglevel: print('  [i] DEBUG: Stop wrap')
-            self.forceWrapping = ''
-            return self.closeTag()
-        else: 
-            if self.debuglevel: print('  [i] DEBUG: Start wrap')
-            self.forceWrapping = "```" 
-            self.openTag("Code")
-            return None
+        return self.checkForceWrap("Code", "```")
 
 
     def parseImg(self, data):
@@ -171,3 +185,21 @@ class N2MW_Parser():
         title, src = re.search(f'\[([{charsetAlt}]+)\]\(([{charsetUrl}]+)\)', data).groups()
 
         return ['<Tags.Url title={"' + title + '"} src={"' + src + '"} />',]
+
+
+    def parseCallout(self, data):
+        if self.debuglevel: print('[*] DEBUG: parseCallout()')
+
+        return self.checkForceWrap("Callout", "</aside>")
+    
+
+    def parseBold(self, data):
+        if self.debuglevel: print('[*] DEBUG: parseBold()')
+
+        return ["<b>", re.search("\*\*([\w\s\(\)])+\*\*", data).groups()[0], "</b>"]
+    
+
+    def parseItalic(self, data):
+        if self.debuglevel: print('[*] DEBUG: parseItalic()')
+
+        return ["<i>", re.search("\*([\w\s\(\)])+\*", data).groups()[0], "</i>"]
