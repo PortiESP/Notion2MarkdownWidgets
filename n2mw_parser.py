@@ -48,7 +48,7 @@ class N2MW_Parser():
         
         if len(input.strip()) == 0: return None
 
-        if not re.search('^' + self.forceWrapping, input):  # Run this code while force wrapping pattern doesnt get matched
+        if not re.match('^' + self.forceWrapping, input):  # Run this code while force wrapping pattern doesnt get matched
             self.concatTagChildren(input)
             return None
 
