@@ -1,20 +1,26 @@
 from n2mw_parser import N2MW_Parser
+from sys import argv
 
 
 class N2MW_CLI(N2MW_Parser):
 
-    def __init__(self):
+    def __init__(self, inputMethod="MD"):
         super().__init__()
-        self.inputmethod = "MD"
+
+        # Parameters
+        self.inputmethod = inputMethod
+        self.inputPath = ""
+
+        # Buffers
         self.inputData = ""
-        
         self.outputData = []
 
 
-    def convert(self):
+    def loadFile(self, path):
         """
             Main method to run the app
         """ 
+        self.inputPath = path
         self.readInput()
 
         if self.inputmethod == "MD":
@@ -39,7 +45,7 @@ class N2MW_CLI(N2MW_Parser):
 
         if self.debuglevel: print('[*] DEBUG: readInput()')
 
-        with open("./TestTemplates/test.md", 'r') as fd:
+        with open(self.inputPath, 'r') as fd:
             self.inputData = fd.read().strip()
 
 
@@ -56,9 +62,10 @@ class N2MW_CLI(N2MW_Parser):
             if parserFunc:  # Valid tag parser function returned 
                 tag = parserFunc(block)  # Check that is a valid tag value
                 if tag: 
-                    tag[1] = self.parseFontStyle(tag[1])
+                    if len(tag) == 3 and tag[0] != "<Tags.Code>": tag[1] = self.parseFontStyle(tag[1])
                     self.outputData.append(tag)  # Parse and append to output tags array
                     
+
     def exportAsPost(self, path):
         """
             Export the data as a component for the blog to a file
@@ -74,7 +81,10 @@ class N2MW_CLI(N2MW_Parser):
         buffer += "export default function Page(){ return (<>\n\n"
         for tagObject in self.outputData:  # Iterate tags list [[tag_fragment], [tag_fragment], ...]
             # Iterate tag fragment ["<Tags.Title>", "My example title", "</Tags.Title>"]
-            buffer += '\t' + tagObject[0] + '\n\t\t' + tagObject[1] + '\n\t' + tagObject[2] + '\n\n'# Join fragments in a sigle line for each tag
+            if len(tagObject) == 3:  # Parse wrapper tags
+                buffer += '\t' + tagObject[0] + '\n\t\t' + tagObject[1] + '\n\t' + tagObject[2] + '\n\n'# Join fragments in a sigle line for each tag
+            else:  # Parse one-line tags
+                buffer += '\t' + tagObject[0] + '\n\n'
 
         # EOF
         buffer += "\n\n</>)}"
@@ -93,6 +103,14 @@ class N2MW_CLI(N2MW_Parser):
 if __name__ == "__main__":
     converter = N2MW_CLI()
 
-    converter.convert()
-    converter.debug()
+    # DEBUG
+    converter.loadFile('.\TestTemplates\TemplatePage_MD\Template Page a0662b798f86436f8eaa962f496d047c.md')
     converter.exportAsPost("./out.jsx")
+
+    # if len(argv) != 3:
+    #     print("\n\t[i] Usage: python3 n2mw.py <inputPath> <outputPath>\n")
+    #     print("\t[i] Exaple: python3 n2mw.py ./in.md ./out.jsx \n")
+    # else:
+    #     converter.loadFile(argv[1])
+    #     converter.exportAsPost(argv[2])
+

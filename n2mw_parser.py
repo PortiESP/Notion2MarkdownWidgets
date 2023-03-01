@@ -46,7 +46,7 @@ class N2MW_Parser():
             '</?aside>': self.parseCallout,
             '\*\*\w+': self.parseBold,
             '\*\w+': self.parseItalic,
-            '`\w+': self.parseItalic,
+            '`\w+': self.parseInlineCode,
             '\-\s': self.parseUList,
             '-->': self.parseTest,
         }
@@ -93,14 +93,23 @@ class N2MW_Parser():
             return self.buffer[2] + '\n\n'
         
 
-    def wrapTag(self, tag, child, params=None):
+    def wrapTag(self, tag, child, params=None, escape=False):
         """
             Takes a tag and its child and create as list of the open tag (<Tags.tag>) and the close tag (</Tags.tag>)
+
+            @params (string): Props of the component
+            @escape (bool): Wrap the children inside of {``} to escape the content
+
         """
 
         params = params if params else ""
 
-        return [f"<Tags.{tag} {params}>", child.strip(), f"</Tags.{tag}>"]
+        if escape:
+            return [f"<Tags.{tag} {params}>" + "{`" , child.strip(), "`}" + f"</Tags.{tag}>"]
+        else:
+            return [f"<Tags.{tag} {params}>", child.strip(), f"</Tags.{tag}>"]
+
+
     
 
     def extractTitle(self, data):
@@ -112,12 +121,9 @@ class N2MW_Parser():
         """
 
         data = data.strip().split('\n')
-        params = None
 
-        if len(data) > 1:
-            params = 'title="' + data[0] + '"'
-            data = "\n".join(data[1:])
-
+        params = 'title="' + data[0] + '"'
+        data = "\n".join(data[1:])
         return (params, data)
     
 
@@ -188,7 +194,7 @@ class N2MW_Parser():
     def parseHr(self, _):
         if self.debuglevel: print('[*] DEBUG: parseHr()')
 
-        return "<Hr />"
+        return ["<Hr />",]
 
     def parseParagraph(self, data):
         if self.debuglevel: print('[*] DEBUG: parseParagraph()')
@@ -211,7 +217,8 @@ class N2MW_Parser():
         buffState = self.toggleBuffer("```", data.strip(" `"), self.parseCode)
 
         if buffState:
-            return self.wrapTag("Code", buffState + data.strip(" `"))
+            children = buffState + data.strip(" `")
+            return self.wrapTag("Code", children, escape=True)
         else:    
             return None
 
@@ -244,8 +251,7 @@ class N2MW_Parser():
         buffState = self.toggleBuffer("</aside>", data, self.parseCallout)
 
         if buffState:  # If buffer is closed
-            (params, data) = self.extractTitle(buffState+data)
-            return self.wrapTag("Callout", data, params)
+            return self.wrapTag("Callout", buffState+data)
         else:   # If buffer is still opened
             return None
     
