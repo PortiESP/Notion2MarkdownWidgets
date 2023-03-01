@@ -143,7 +143,14 @@ class N2MW_Parser():
     def parseQuote(self, data):
         if self.debuglevel: print('[*] DEBUG: parseQuote()')
 
-        return self.wrapTag("Quote", data.strip(' >'))
+        data = re.findall("> ?([\w\s]+)\s?", data)
+        params = None
+        if len(data) > 1:
+            params = 'title="' + data[0].strip() + '"'
+            data = data[1:]
+
+        data = "".join(data)
+        return self.wrapTag("Quote", data, params)
     
 
     def parseCode(self, data):
