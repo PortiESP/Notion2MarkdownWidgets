@@ -78,7 +78,7 @@ class N2MW_Parser():
         if self.buffer[0] == '':  # Buffer empty, start new one
             self.buffer[0] = pattern
             self.buffer[1] = callback
-            self.buffer[2] = data.strip(" " + pattern)
+            self.buffer[2] = data
             if self.debuglevel: print('  [i] DEBUG: Start wrap', self.buffer)
             return None
         else:
@@ -96,7 +96,19 @@ class N2MW_Parser():
         params = params if params else ""
 
         return [f"<Tags.{tag} {params}>", child.strip(), f"</Tags.{tag}>"]
+    
 
+    def extractTitle(self, data):
+        data = data.strip().split('\n')
+        params = None
+
+        if len(data) > 1:
+            params = 'title="' + data[0] + '"'
+            data = "\n".join(data[1:])
+
+        return (params, data)
+
+        
 
     """
 
@@ -143,13 +155,13 @@ class N2MW_Parser():
     def parseQuote(self, data):
         if self.debuglevel: print('[*] DEBUG: parseQuote()')
 
-        data = re.findall("> ?([\w\s]+)\s?", data)
-        params = None
-        if len(data) > 1:
-            params = 'title="' + data[0].strip() + '"'
-            data = data[1:]
+        data = "".join(re.findall("> ?([\w\s]+)\s?", data))
+        (params, data) = self.extractTitle(data)
+        # params = None
+        # if len(data) > 1:
+        #     params = 'title="' + data[0].strip() + '"'
+        #     data = data[1:]
 
-        data = "".join(data)
         return self.wrapTag("Quote", data, params)
     
 
@@ -186,9 +198,16 @@ class N2MW_Parser():
 
 
     def parseCallout(self, data):
-        if self.debuglevel: print('[*] DEBUG: parseCallout()')
+        if self.debuglevel: print('[*] DEBUG: parseCallout()', data)
 
-        return self.wrapTag("Callout", re.search("<aside>([\w\s\(\)]+)</aside>", data).groups()[0])
+        data = re.sub("</?aside>", "", data)
+        buffState = self.toggleBuffer("</aside>", data, self.parseCallout)
+
+        if buffState:  # If buffer is closed
+            (params, data) = self.extractTitle(buffState+data)
+            return self.wrapTag("Callout", data, params)
+        else:   # If buffer is still opened
+            return None
     
 
     def parseBold(self, data):
