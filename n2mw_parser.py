@@ -52,7 +52,6 @@ class N2MW_Parser():
         if len(input.strip()) and (self.buffer[0] == 0): 
             return None
 
-
         if self.buffer[0] == "":  # If there is no active buffer
             for key,val in tags.items(): 
                 if self.debuglevel: print('  [i] DEBUG: identifyTag("', input,'") -->', re.match("\s*" + key, input))
@@ -86,6 +85,14 @@ class N2MW_Parser():
             return self.buffer[2] + '\n\n'
         
 
+    def wrapTag(self, tag, child):
+        """
+            Takes a tag and its child and create as list of the open tag (<Tags.tag>) and the close tag (</Tags.tag>)
+        """
+
+        return [f"<Tags.{tag}>", child, f"</Tags.{tag}>"]
+
+
     """
 
         Mardown object parsing functions bellow...
@@ -96,43 +103,42 @@ class N2MW_Parser():
     def parseTitle4(self, data):
         if self.debuglevel: print('[*] DEBUG: parseTitle3("', data,'")')
 
-        return ["<Tags.Title3>", data.strip(' #'), "</Tags.Title3>"]
+        return self.wrapTag("Title3", data.strip(' #'))
     
 
     def parseTitle3(self, data):
         if self.debuglevel: print('[*] DEBUG: parseTitle3("', data,'")')
 
-        return ["<Tags.Title3>", data.strip(' #'), "</Tags.Title3>"]
+        return self.wrapTag("Title3", data.strip(' #'))
     
 
     def parseTitle2(self, data):
         if self.debuglevel: print('[*] DEBUG: parseTitle2("', data,'")')
 
-        return ["<Tags.Title2>", data.strip(' #'), "</Tags.Title2>"]
+        return self.wrapTag("Title2", data.strip(' #'))
     
 
     def parseTitle(self, data):
         if self.debuglevel: print('[*] DEBUG: parseTitle("', data,'")')
 
-        return ["<Tags.Title>", data.strip(' #'), "</Tags.Title>"]
+        return self.wrapTag("Title", data.strip(' #'))
     
 
     def parseHr(self, _):
         if self.debuglevel: print('[*] DEBUG: parseHr()')
 
-        return ["<Tags.Hr />",]
-    
+        return "<Hr />"
 
     def parseParagraph(self, data):
         if self.debuglevel: print('[*] DEBUG: parseParagraph()')
 
-        return ["<Tags.Paragraph>", data, "</Tags.Paragraph>"]
+        return self.wrapTag("Paragraph", data)
     
 
     def parseQuote(self, data):
         if self.debuglevel: print('[*] DEBUG: parseQuote()')
 
-        return ["<Tags.Quote>", data.strip(' >'), "</Tags.Quote>"]
+        return self.wrapTag("Quote", data.strip(' >'))
     
 
     def parseCode(self, data):
@@ -141,7 +147,7 @@ class N2MW_Parser():
         buffState = self.toggleBuffer("```", data, self.parseCode)
 
         if buffState:
-            return ["<Tags.Code>", buffState + data, "</Tags.Code>"]
+            return self.wrapTag("Code", buffState + data)
         else:    
             return None
 
@@ -171,7 +177,7 @@ class N2MW_Parser():
     def parseCallout(self, data):
         if self.debuglevel: print('[*] DEBUG: parseCallout()')
 
-        return ["<Tags.Callout>", re.search("<aside>([\w\s\(\)]+)</aside>", data).groups()[0], "</Tags.Callout>"]
+        return self.wrapTag("Callout", re.search("<aside>([\w\s\(\)]+)</aside>", data).groups()[0])
     
 
     def parseBold(self, data):
