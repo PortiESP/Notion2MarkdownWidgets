@@ -45,7 +45,7 @@ class N2MW_CLI(N2MW_Parser):
 
         if self.debuglevel: print('[*] DEBUG: readInput()')
 
-        with open(self.inputPath, 'r') as fd:
+        with open(self.inputPath, 'r', encoding="utf8") as fd:
             self.inputData = fd.read().strip()
 
 
