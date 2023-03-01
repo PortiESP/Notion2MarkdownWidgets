@@ -90,7 +90,7 @@ class N2MW_Parser():
             Takes a tag and its child and create as list of the open tag (<Tags.tag>) and the close tag (</Tags.tag>)
         """
 
-        return [f"<Tags.{tag}>", child, f"</Tags.{tag}>"]
+        return [f"<Tags.{tag}>", child.strip(), f"</Tags.{tag}>"]
 
 
     """
@@ -144,10 +144,10 @@ class N2MW_Parser():
     def parseCode(self, data):
         if self.debuglevel: print('[*] DEBUG: parseCode("', data, '")')
 
-        buffState = self.toggleBuffer("```", data, self.parseCode)
+        buffState = self.toggleBuffer("```", data.strip(" `"), self.parseCode)
 
         if buffState:
-            return self.wrapTag("Code", buffState + data)
+            return self.wrapTag("Code", buffState + data.strip(" `"))
         else:    
             return None
 
