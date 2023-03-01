@@ -1,3 +1,5 @@
+#!/urs/bin/python3
+
 from n2mw_parser import N2MW_Parser
 from sys import argv
 
@@ -103,10 +105,17 @@ class N2MW_CLI(N2MW_Parser):
 if __name__ == "__main__":
     converter = N2MW_CLI()
 
-
-    if len(argv) != 3:
+    if len(argv) == 1:
         print("\n\t[i] Usage: python3 n2mw.py <inputPath> <outputPath>\n")
         print("\t[i] Exaple: python3 n2mw.py ./in.md ./out.jsx \n")
+        
+        print("\t[i] Entering interacive mode...")
+
+        inputPath = input("\t[>] Input path: ")
+        outputPath = input("\t[>] Output path (./out.jsx): ")
+
+        converter.loadFile(inputPath)
+        converter.exportAsPost(outputPath)
     else:
         converter.loadFile(argv[1])
         converter.exportAsPost(argv[2])
