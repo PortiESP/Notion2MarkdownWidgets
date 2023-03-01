@@ -71,11 +71,10 @@ class N2MW_CLI(N2MW_Parser):
         buffer += "\n\n\n"
 
         # Code
-        buffer += "export default function Page(){ return (<>\n\n\t"
+        buffer += "export default function Page(){ return (<>\n\n"
         for tagObject in self.outputData:  # Iterate tags list [[tag_fragment], [tag_fragment], ...]
-            for tagFragments in tagObject:  # Iterate tag fragment ["<Tags.Title>", "My example title", "</Tags.Title>"]
-                buffer += "".join(tagFragments)  # Join fragments in a sigle line for each tag
-            buffer += "\n\n\t"  # Join each tag with a two line-break spearation
+            # Iterate tag fragment ["<Tags.Title>", "My example title", "</Tags.Title>"]
+            buffer += '\t' + tagObject[0] + '\n\t\t' + tagObject[1] + '\n\t' + tagObject[2] + '\n\n'# Join fragments in a sigle line for each tag
 
         # EOF
         buffer += "\n\n</>)}"
