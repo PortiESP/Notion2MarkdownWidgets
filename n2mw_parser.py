@@ -48,6 +48,7 @@ class N2MW_Parser():
             '\*\w+': self.parseItalic,
             '`\w+': self.parseItalic,
             '\-\s': self.parseUList,
+            '-->': self.parseTest,
         }
 
         if self.debuglevel: print('[*] DEBUG: identifyTag("', input,'") @ Buffer: ', self.buffer)
@@ -58,15 +59,19 @@ class N2MW_Parser():
         if self.buffer[0] == "":  # If there is no active buffer
             for key,val in tags.items(): 
                 if self.debuglevel: print('  [i] DEBUG: identifyTag("', input,'") -->', re.match("\s*" + key, input))
-                if (re.match("\s*" + key, input) != None): return val
+                if (re.match("\s*" + key, input) != None): 
+                    ret = val
+                    break
             else:
-                return self.parseParagraph
+                ret = self.parseParagraph
         else:
             if re.search(self.buffer[0] + "$", input):  # Closing pattern matched
-                return self.buffer[1]
+                ret = self.buffer[1]
             else:  # Keep writting to the buffer
                 self.buffer[2] += '\n\n' + input
-                return None
+                ret = None
+
+        return ret
                 
     
 
@@ -99,6 +104,13 @@ class N2MW_Parser():
     
 
     def extractTitle(self, data):
+        """
+            Takes a string, and if it is longer than a single line, extrac the first line as a title parameter and returns a tuple
+
+            RETURN ('title="My first line"', 'The rest of my lines\nThis is a second line')
+
+        """
+
         data = data.strip().split('\n')
         params = None
 
@@ -107,7 +119,39 @@ class N2MW_Parser():
             data = "\n".join(data[1:])
 
         return (params, data)
+    
 
+    def parseFontStyle(self, string):
+        """
+            Parse the inline font styles for Bold, Italic & Code
+        """
+
+        if self.debuglevel: print('[*] DEBUG: parseFontStyle("', string,'")')
+
+        if string == None: return None
+
+        # Parse bold
+        matches = re.findall("\*\*([\w\s`]+)\*\*", string)
+        for entry in matches:
+            string = re.sub("\*\*"+entry+"\*\*", "<b>" + entry + "</b>", string)
+        string = re.sub("(\*\*)", "", string)
+
+
+        # Parse italic
+        matches = re.findall("\*([\w\s<>/`]+)\*", string)
+        for entry in matches:
+            string = re.sub("\*"+entry+"\*", "<i>" + entry + "</i>", string)
+        string = re.sub("(\*)", "", string)
+
+
+        # Parse inline code
+        matches = re.findall("`([\w\s<>/\*]+)`", string)
+        for entry in matches:
+            string = re.sub("`"+entry+"`", "<Tags.Code inline>" + entry + "</Tags.Code>", string)
+        string = re.sub("(`)", "", string)
+
+
+        return string
         
 
     """
@@ -157,10 +201,6 @@ class N2MW_Parser():
 
         data = "".join(re.findall("> ?([\w\s]+)\s?", data))
         (params, data) = self.extractTitle(data)
-        # params = None
-        # if len(data) > 1:
-        #     params = 'title="' + data[0].strip() + '"'
-        #     data = data[1:]
 
         return self.wrapTag("Quote", data, params)
     
@@ -243,3 +283,8 @@ class N2MW_Parser():
         itemsListStr = "{" + f"[{itemsStr}]" + "}"
         
         return [f"<Tags.UList items={itemsListStr} />"]
+    
+    def parseTest(self, data):
+        if self.debuglevel: print('[*] DEBUG: parseTest()')
+        
+        self.identifyTag(data.replace("-->", ""))

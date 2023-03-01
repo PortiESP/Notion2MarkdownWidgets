@@ -55,7 +55,9 @@ class N2MW_CLI(N2MW_Parser):
             parserFunc = self.identifyTag(block)  # Indetify the tag
             if parserFunc:  # Valid tag parser function returned 
                 tag = parserFunc(block)  # Check that is a valid tag value
-                if tag: self.outputData.append(tag)  # Parse and append to output tags array
+                if tag: 
+                    tag[1] = self.parseFontStyle(tag[1])
+                    self.outputData.append(tag)  # Parse and append to output tags array
                     
     def exportAsPost(self, path):
         """
@@ -86,10 +88,6 @@ class N2MW_CLI(N2MW_Parser):
         # Dump
         with open(path, "w") as fd:
             fd.write(buffer)
-
-
-            
-              
 
     
 
