@@ -26,3 +26,7 @@ This ![ is a paragraph
 **bold**
 
 *ita*
+
+- item1
+- item2
+- item3

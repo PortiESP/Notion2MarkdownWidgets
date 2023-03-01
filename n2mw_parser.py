@@ -22,6 +22,8 @@ class N2MW_Parser():
         self.debuglevel = True   # Print debug messages
         self.buffer = ["", None, ""]  # This attr will be filled when we need some elements to support multiline children --> ["<closingPattern>", <callback>, "<buffer>"]
 
+        self.CHARSET_SYMBOLS = "!\.\-\_@#%\?=\/:<>,"
+
     
     def identifyTag(self, input):
         """
@@ -44,6 +46,7 @@ class N2MW_Parser():
             '</?aside>': self.parseCallout,
             '\*\*\w+': self.parseBold,
             '\*\w+': self.parseItalic,
+            '`\w+': self.parseItalic,
             '\-\s': self.parseUList,
         }
 
@@ -85,12 +88,14 @@ class N2MW_Parser():
             return self.buffer[2] + '\n\n'
         
 
-    def wrapTag(self, tag, child):
+    def wrapTag(self, tag, child, params=None):
         """
             Takes a tag and its child and create as list of the open tag (<Tags.tag>) and the close tag (</Tags.tag>)
         """
 
-        return [f"<Tags.{tag}>", child.strip(), f"</Tags.{tag}>"]
+        params = params if params else ""
+
+        return [f"<Tags.{tag} {params}>", child.strip(), f"</Tags.{tag}>"]
 
 
     """
@@ -155,9 +160,8 @@ class N2MW_Parser():
     def parseImg(self, data):
         if self.debuglevel: print('[*] DEBUG: parseImg()')
 
-        charsetSymbols = "!\.\-\_@#%\?=\/:"
-        charsetAlt = f"\w\s{charsetSymbols}"
-        charsetUrl = f"\w\s{charsetSymbols}"
+        charsetAlt = f"\w\s{self.CHARSET_SYMBOLS}"
+        charsetUrl = f"\w\s{self.CHARSET_SYMBOLS}"
         alt, src = re.search(f'!\[([{charsetAlt}]+)\]\(([{charsetUrl}]+)\)', data).groups()
 
         return ['<Tags.Image alt={"' + alt + '"} img={"' + src + '"} />',]
@@ -166,9 +170,9 @@ class N2MW_Parser():
     def parseUrl(self, data):
         if self.debuglevel: print('[*] DEBUG: parseUrl()')
 
-        charsetSymbols = "!\.\-\_@#%\?=\/:"
-        charsetAlt = f"\w\s{charsetSymbols}"
-        charsetUrl = f"\w\s{charsetSymbols}"
+        
+        charsetAlt = f"\w\s{self.CHARSET_SYMBOLS}"
+        charsetUrl = f"\w\s{self.CHARSET_SYMBOLS}"
         title, src = re.search(f'\[([{charsetAlt}]+)\]\(([{charsetUrl}]+)\)', data).groups()
 
         return ['<Tags.Url title={"' + title + '"} src={"' + src + '"} />',]
@@ -190,9 +194,26 @@ class N2MW_Parser():
         if self.debuglevel: print('[*] DEBUG: parseItalic()')
 
         return ["<i>", re.search("\*([\w\s\(\)]+)\*", data).groups()[0], "</i>"]
+    
+
+    def parseInlineCode(self, data):
+        if self.debuglevel: print('[*] DEBUG: parseInlineCode()')
+
+        data = re.search(f"`([\w\s{self.CHARSET_SYMBOLS}]+)`", data).groups()[0]
+
+        return self.wrapTag("Code", data, "inline")
 
 
     def parseUList(self, data):
         if self.debuglevel: print('[*] DEBUG: parseUList()')
 
-        print(data)
+        itemList = data.strip().split("\n")
+        stripFunc = lambda s: '"' + s.strip(' -') + '"'
+
+        parsedList = map(stripFunc, itemList)
+
+        itemsStr = ", ".join(parsedList)
+        
+        itemsListStr = "{" + f"[{itemsStr}]" + "}"
+        
+        return [f"<Tags.UList items={itemsListStr} />"]
