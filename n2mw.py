@@ -1,4 +1,3 @@
-#!/urs/bin/python3
 
 from n2mw_parser import N2MW_Parser
 from sys import argv
@@ -47,8 +46,9 @@ class N2MW_CLI(N2MW_Parser):
 
         if self.debuglevel: print('[*] DEBUG: readInput()')
 
-        with open(self.inputPath, 'r', encoding="utf8") as fd:
+        with open(self.inputPath, 'r', encoding="utf-8") as fd:
             self.inputData = fd.read().strip()
+        
 
 
     def parseInputMD(self):  # Parse the data from the input
@@ -97,8 +97,11 @@ class N2MW_CLI(N2MW_Parser):
         print("=====================[ End Of file ]===================")
 
         # Dump
-        with open(path, "w") as fd:
-            fd.write(buffer)
+        try:
+            with open(path, "w", encoding="utf-8") as fd:
+                fd.write(buffer)
+        except UnicodeEncodeError:
+            print("\n[!] EXCEPTION Captured: Error dumping unicode characters (emogi, tildes, greek letters, ...)")
 
     
 
@@ -111,8 +114,8 @@ if __name__ == "__main__":
         
         print("\t[i] Entering interacive mode...")
 
-        inputPath = input("\t[>] Input path: ")
-        outputPath = input("\t[>] Output path (./out.jsx): ")
+        inputPath = input("\t[>] Input path: ").strip(' "\'&')
+        outputPath = input("\t[>] Output path (./out.jsx): ").strip(' "')
 
         converter.loadFile(inputPath)
         converter.exportAsPost(outputPath)
