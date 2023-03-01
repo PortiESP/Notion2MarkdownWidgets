@@ -20,8 +20,7 @@ class N2MW_Parser():
 
     def __init__(self):
         self.debuglevel = True   # Print debug messages
-        self.forceWrapping = ''  # When active, all the input lines will be parsed as raw strings until its value is set to `''`
-        self.wrappingStack = []  # Keeps track of the opened tags
+        self.buffer = ["", None, ""]  # This attr will be filled when we need some elements to support multiline children --> ["<closingPattern>", <callback>, "<buffer>"]
 
     
     def identifyTag(self, input):
@@ -45,70 +44,47 @@ class N2MW_Parser():
             '</?aside>': self.parseCallout,
             '\*\*\w+': self.parseBold,
             '\*\w+': self.parseItalic,
+            '\-\s': self.parseUList,
         }
-        if self.debuglevel: print('[*] DEBUG: identifyTag("', input,'")')
+
+        if self.debuglevel: print('[*] DEBUG: identifyTag("', input,'") @ Buffer: ', self.buffer)
         
-        if len(input.strip()) == 0: return None
-
-        if not re.match(self.forceWrapping, input):  # Run this code while force wrapping pattern doesnt get matched
-            self.concatTagChildren(input)
+        if len(input.strip()) and (self.buffer[0] == 0): 
             return None
 
 
-        input = input.strip()
-        for key,val in tags.items(): 
-            if self.debuglevel: print('  [i] DEBUG: identifyTag("', input,'") -->', re.search(key, input))
-            if (re.search('^' + key, input) != None): return val
-
-        return self.parseParagraph
+        if self.buffer[0] == "":  # If there is no active buffer
+            for key,val in tags.items(): 
+                if self.debuglevel: print('  [i] DEBUG: identifyTag("', input,'") -->', re.match("\s*" + key, input))
+                if (re.match("\s*" + key, input) != None): return val
+            else:
+                return self.parseParagraph
+        else:
+            if re.search(self.buffer[0] + "$", input):  # Closing pattern matched
+                return self.buffer[1]
+            else:  # Keep writting to the buffer
+                self.buffer[2] += '\n\n' + input
+                return None
+                
     
 
-    def openTag(self, tag, params=''):
+    def toggleBuffer(self, pattern, data, callback):
         """
-            Add the tag and the children to the stack
-        """
-
-        self.wrappingStack.append([tag, [f"<Tags.{tag} {params}>", ""]])
-
-    
-    def concatTagChildren(self, children):
-        """
-            Add the children data to the top of the stack
+            Return the buffer if the closing pattern is matched
         """
 
-        if self.wrappingStack:
-            self.wrappingStack[-1][1][1] += children.strip()
-    
-
-    def closeTag(self):
-        """
-            Pops the top of the wrapping stack and return the full tag
-        """
-
-        tag, childrenObject = self.wrappingStack.pop()    
-
-        return [*childrenObject, f"</Tags.{tag}>"]
-    
-
-    def checkForceWrap(self, tag, pattern):
-        """
-            When called, checks if there is a forceWrapping active
-
-            - If its active: Resets the force variable and close the last tag from the wrappingStack
-            - If its not active: Set the forceWrapping value as the tag pattern and opens a tag
-
-        """
-
-        if self.forceWrapping:
-            if self.debuglevel: print('  [i] DEBUG: Stop wrap')
-            self.forceWrapping = ''
-            return self.closeTag()
-        else: 
-            if self.debuglevel: print('  [i] DEBUG: Start wrap')
-            self.forceWrapping = pattern
-            self.openTag(tag)
+        if self.buffer[0] == '':  # Buffer empty, start new one
+            self.buffer[0] = pattern
+            self.buffer[1] = callback
+            self.buffer[2] = data.strip(" " + pattern)
+            if self.debuglevel: print('  [i] DEBUG: Start wrap', self.buffer)
             return None
-
+        else:
+            self.buffer[0] = ""
+            self.buffer[1] = None
+            if self.debuglevel: print('  [i] DEBUG: Stop wrap', self.buffer)
+            return self.buffer[2] + '\n\n'
+        
 
     """
 
@@ -160,9 +136,14 @@ class N2MW_Parser():
     
 
     def parseCode(self, data):
-        if self.debuglevel: print('[*] DEBUG: parseCode()')
+        if self.debuglevel: print('[*] DEBUG: parseCode("', data, '")')
 
-        return self.checkForceWrap("Code", "```")
+        buffState = self.toggleBuffer("```", data, self.parseCode)
+
+        if buffState:
+            return ["<Tags.Code>", buffState + data, "</Tags.Code>"]
+        else:    
+            return None
 
 
     def parseImg(self, data):
@@ -190,16 +171,22 @@ class N2MW_Parser():
     def parseCallout(self, data):
         if self.debuglevel: print('[*] DEBUG: parseCallout()')
 
-        return self.checkForceWrap("Callout", "</aside>")
+        return ["<Tags.Callout>", re.search("<aside>([\w\s\(\)]+)</aside>", data).groups()[0], "</Tags.Callout>"]
     
 
     def parseBold(self, data):
         if self.debuglevel: print('[*] DEBUG: parseBold()')
 
-        return ["<b>", re.search("\*\*([\w\s\(\)])+\*\*", data).groups()[0], "</b>"]
+        return ["<b>", re.search("\*\*([\w\s\(\)]+)\*\*", data).groups()[0], "</b>"]
     
 
     def parseItalic(self, data):
         if self.debuglevel: print('[*] DEBUG: parseItalic()')
 
-        return ["<i>", re.search("\*([\w\s\(\)])+\*", data).groups()[0], "</i>"]
+        return ["<i>", re.search("\*([\w\s\(\)]+)\*", data).groups()[0], "</i>"]
+
+
+    def parseUList(self, data):
+        if self.debuglevel: print('[*] DEBUG: parseUList()')
+
+        print(data)

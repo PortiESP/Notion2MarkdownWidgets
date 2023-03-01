@@ -40,7 +40,7 @@ class N2MW_CLI(N2MW_Parser):
         if self.debuglevel: print('[*] DEBUG: readInput()')
 
         with open("./TestTemplates/test.md", 'r') as fd:
-            self.inputData = fd.read()
+            self.inputData = fd.read().strip()
 
 
     def parseInputMD(self):  # Parse the data from the input
@@ -49,12 +49,12 @@ class N2MW_CLI(N2MW_Parser):
         """
 
         if self.debuglevel: print('[*] DEBUG: parseInputMD()'), 
-        data = self.inputData.split('\n')
+        filedata = self.inputData.split('\n\n')
 
-        for line in data:
-            parserFunc = self.identifyTag(line)  # Indetify the tag
-            if parserFunc:  # Valid tag returned 
-                tag = parserFunc(line)  # Check that is a valid tag value
+        for block in filedata:
+            parserFunc = self.identifyTag(block)  # Indetify the tag
+            if parserFunc:  # Valid tag parser function returned 
+                tag = parserFunc(block)  # Check that is a valid tag value
                 if tag: self.outputData.append(tag)  # Parse and append to output tags array
                     
     def exportAsPost(self, path):
