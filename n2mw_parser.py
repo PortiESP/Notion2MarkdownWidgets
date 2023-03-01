@@ -18,8 +18,8 @@ import re
 class N2MW_Parser():
 
 
-    def __init__(self):
-        self.debuglevel = True   # Print debug messages
+    def __init__(self, debug=False):
+        self.debuglevel = debug   # Print debug messages
         self.buffer = ["", None, ""]  # This attr will be filled when we need some elements to support multiline children --> ["<closingPattern>", <callback>, "<buffer>"]
 
         self.CHARSET_SYMBOLS = "!\.\-\_@#%\?=\/:<>,"
