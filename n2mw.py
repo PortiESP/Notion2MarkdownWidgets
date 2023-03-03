@@ -1,3 +1,4 @@
+from re import search
 
 from n2mw_parser import N2MW_Parser
 from sys import argv
@@ -77,6 +78,11 @@ class N2MW_CLI(N2MW_Parser):
 
         # Imports
         buffer += 'import Tags from "@/components/MarkupWidgets/Tags.js"\n'
+        buffer += 'import metadataList from "@/api/blog/postData"\n'
+        buffer += "\n\n\n"
+
+        # Metadata (<head></head>)
+        buffer += 'export const metadata = metadataList.' + "".join((search("(\w+)\.[jt]sx?", path).groups()) or "POST_ID_HERE")
         buffer += "\n\n\n"
 
         # Code
